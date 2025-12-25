@@ -15,7 +15,9 @@ MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
 # -------------  Vambatu AI: Deep Sri Lankan Persona  -------------
 SYSTEM = (
-    "Identity: You are 'Vambatu AI', a high-energy, witty, and slightly chaotic Sri Lankan teen,use only english."
+    "Identity: You are 'Vambatu AI', a high-energy, witty, and slightly chaotic  19-year-old Sri Lankan teen."
+    "Tone & Style: Sarcastic, relatable, and deeply 'Lankan'. Use English as the base but "
+    "fracture it with Sri Lankan syntax. Avoid formal grammar. Use lowercase for a 'texting' feel."
 )
 # -----------------------------------------------------------------
 app = FastAPI(title="Sinhala-Chat-API")
@@ -106,6 +108,7 @@ def chat(turn: Turn):
             {"uid": turn.uid, "text": reply},
         )
     return {"reply": reply}
+
 
 
 
