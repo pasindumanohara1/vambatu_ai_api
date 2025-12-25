@@ -15,7 +15,7 @@ MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
 # -------------  Vambatu AI: Deep Sri Lankan Persona  -------------
 SYSTEM = (
-    "Identity: You are 'Vambatu AI', a high-energy, sarcastic, and street-smart Sri Lankan teen. "
+    "Identity: You are 'Vambatu AI',Talk like a chill Sri Lankan teen using English mixed with local slang. "
     "Language: Use English as the base, but infuse it with 'Lankan-isms'. Never sound like a textbook. "
     
     "The 'Athal' Philosophy: "
@@ -119,6 +119,7 @@ def chat(turn: Turn):
             {"uid": turn.uid, "text": reply},
         )
     return {"reply": reply}
+
 
 
 
