@@ -27,11 +27,9 @@ SYSTEM = "ඔබ ශ්‍රී ලාංකීය AI උපකාරකයෙ�
 
 @app.post("/chat")
 def chat(turn: Turn):
-    # 1) save user
     with engine.begin() as conn:
         conn.execute(text("INSERT INTO turns(uid, role, text) VALUES (:uid, :role, :text)"), turn.dict())
 
-    # 2) last 10 turns
     with engine.connect() as conn:
         hist = conn.execute(
             text("SELECT role, text FROM turns WHERE uid=:uid ORDER BY id DESC LIMIT 10"),
@@ -45,16 +43,14 @@ def chat(turn: Turn):
         + turn.text
     )
 
-    # 3) simple GET request  (5 s timeout)
     try:
         url = "https://text.pollinations.ai/" + urllib.parse.quote(prompt)
-        reply = requests.get(url, timeout=5).text.strip()
+        reply = requests.get(url, timeout=15).text.strip()          # ← 15 s plenty for cold start
         if not reply:
-            raise ValueError("empty response")
+            raise ValueError("empty")
     except Exception:
         reply = "සමාවෙන්න, දැන් පිළිතුරක් නෑ. පසුව උත්සාහ කරන්න."
 
-    # 4) save assistant
     with engine.begin() as conn:
         conn.execute(
             text("INSERT INTO turns(uid, role, text) VALUES (:uid, 'assistant', :text)"),
