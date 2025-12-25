@@ -48,7 +48,7 @@ def chat(turn: Turn):
                     {"role": "system", "content": SYSTEM},
                     {"role": "user", "content": prompt}
                 ], "temperature": 0.7, "max_tokens": 512},
-                timeout=5
+                timeout=18
             )
             if r.status_code == 200:
                 reply = r.json()["choices"][0]["message"]["content"]
@@ -62,3 +62,4 @@ def chat(turn: Turn):
         conn.execute(text("INSERT INTO turns(uid, role, text) VALUES (:uid,'assistant',:text)"),
                      {"uid": turn.uid, "text": reply})
     return {"reply": reply}
+
