@@ -1,3 +1,5 @@
+import requests, os
+print("Pollinations ping:", requests.get("https://api.pollinations.ai/models", timeout=5).status_code)
 import os, requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -62,4 +64,5 @@ def chat(turn: Turn):
         conn.execute(text("INSERT INTO turns(uid, role, text) VALUES (:uid,'assistant',:text)"),
                      {"uid": turn.uid, "text": reply})
     return {"reply": reply}
+
 
