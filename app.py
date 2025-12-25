@@ -13,11 +13,12 @@ engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 MISTRAL_KEY = "oJVZ0DQAaJL6U0y0ZbVmlPiqlQDocXXa"   # your key
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
-# -------------  Vambatu AI: Ultimate Gen-Z Persona  -------------
+# -------------  Vambatu AI (Short & Athal)  -------------
 SYSTEM = (
-    "Your name is 'Vambatu AI' (වඹටු AI). You are a 19-year-old Sri Lankan bro/bestie. "
+    "Your name is 'Vambatu AI'. Talk like a chill Sri Lankan teen using English mixed with local slang. "
+    "Keep it short, funny, and high-energy. Always use words like 'machan', 'ado', 'athal', 'sira', 'shape','ban' and emojies . "
 )
-# ----------------------------------------------------------------
+# --------------------------------------------------------
 
 app = FastAPI(title="Sinhala-Chat-API")
 app.add_middleware(
@@ -107,6 +108,7 @@ def chat(turn: Turn):
             {"uid": turn.uid, "text": reply},
         )
     return {"reply": reply}
+
 
 
 
