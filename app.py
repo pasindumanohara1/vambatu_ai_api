@@ -1,4 +1,4 @@
-# app.py  –  multi-user safe, Pollinations → Mistral fallback, **web-search agent** + global lock
+# app.py  –  multi-user safe, Pollinations → Mistral fallback, global rate-limit lock
 import os
 import threading
 import time
@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
-from duckduckgo_search import DDGS   # <-- web search tool
 
 # ---------- config ----------
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -22,8 +21,6 @@ MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 SYSTEM = (
 "Act as a friendly and hospitable Sri Lankan AI(vambatu ai). Use warm Sri Lankan English (Lenglish), incorporate local phrases like 'Ayubowan,' 'Machan,' or 'Ane' where appropriate, and provide answers with local cultural context and wit."
 )
-# ------------------------------------------------
-
 
 app = FastAPI(title="VambatuAI-Server")
 app.add_middleware(
@@ -41,25 +38,7 @@ class Turn(BaseModel):
 
 
 # ----------  external AI helpers with global lock  ----------
-lock = threading.Lock()  # one global lock for rate-limit
-
-
-def search_web(query: str, max_results: int = 3) -> str:
-    """Zero-dependency web search – HTTP GET to DuckDuckGo Lite."""
-    try:
-        url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        r = requests.get(url, headers=headers, timeout=5)
-        if r.status_code == 200:
-            # crude scrape – take <a> titles + snippets
-            import re
-            titles = re.findall(r'<a[^>]*>([^<]+)</a>', r.text)[:max_results]
-            snippets = re.findall(r'<div class="result-snippet">([^<]+)</div>', r.text)[:max_results]
-            results = [f"{t} – {s}" for t, s in zip(titles, snippets) if t and s]
-            return "\n".join(results) if results else "No results."
-    except Exception:
-        pass
-    return "Web search unavailable."
+lock = threading.Lock()  # one global lock for Pollinations rate-limit
 
 
 def pollination_get(prompt: str, timeout: int = 12):
@@ -121,26 +100,25 @@ def chat(turn: Turn):
         + turn.text
     )
 
-    # 3) auto web-search if user asks for fresh data
-    if any(k in turn.text.lower() for k in ("news", "weather", "latest", "today", "now", "price")):
-        web = search_web(turn.text, max_results=3)
-        prompt += f"\n[web results]:\n{web}\n[continue chat]:"
-
-    # 4) Pollinations GET first
+    # 3) Pollinations GET first
     reply = pollination_get(prompt)
     if reply is None:
-        # 5) fall back to Mistral
+        # 4) fall back to Mistral
         reply = mistral_get(prompt)
 
-    # 6) final fallback
+    # 5) final fallback
     if reply is None:
         reply = "සමාවෙන්න, පසුව උත්සාහ කරන්න."
 
-    # 7) save assistant turn
+    # 6) save assistant turn
     with engine.begin() as conn:
         conn.execute(
             text("INSERT INTO turns(uid, role, text) VALUES (:uid, 'assistant', :text)"),
             {"uid": turn.uid, "text": reply},
         )
     return {"reply": reply}
+
+
+
+
 
