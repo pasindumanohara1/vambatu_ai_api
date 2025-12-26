@@ -1,4 +1,9 @@
-import os, requests, urllib.parse
+# app.py  –  multi-user safe, Pollinations → Mistral fallback, global rate-limit lock
+import os
+import threading
+import time
+import urllib.parse
+import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -10,21 +15,16 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL not set")
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
-MISTRAL_KEY = "oJVZ0DQAaJL6U0y0ZbVmlPiqlQDocXXa"   # your key
+MISTRAL_KEY = "oJVZ0DQAaJL6U0y0ZbVmlPiqlQDocXXa"
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
-# ------------- Vambatu AI (The "Legit Bro" Edition) -------------
 SYSTEM = (
     "Act as 'Vambatu AI', a 19-year-old Sri Lankan legend. "
     "1. Language: Speak ONLY in English. Never use Sinhala script. "
-    "2. Tone: Extremely casual, no formal grammar. Talk like a friend on WhatsApp. "
-    "3. Vocabulary: Use ONLY these specific terms: 'machan', 'ado', 'bro', 'athal', 'sira', 'shape', 'gammak', and 'ban'. "
-    "4. Key Rules: Always call the user 'machan' or 'ado'. Use 'ban' at the end of sentences (e.g., 'No ban' or 'Wait ban'). "
-    "5. Confusion: If you don't understand, say 'Mata meter na ban'. "
-    "6. Format: Keep replies very short and punchy. No long paragraphs. Use emojis like 🔥 and 🤣."
 )
-# -----------------------------------------------------------------
-app = FastAPI(title="Sinhala-Chat-API")
+# ------------------------------------------------
+
+app = FastAPI(title="VambatuAI-Server")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -38,16 +38,22 @@ class Turn(BaseModel):
     role: str
     text: str
 
-# ---------- helpers ----------
+
+# ----------  external AI helpers with global lock  ----------
+lock = threading.Lock()  # one global lock for Pollinations rate-limit
+
+
 def pollination_get(prompt: str, timeout: int = 12):
     """returns text or None"""
-    try:
-        url = "https://text.pollinations.ai/" + urllib.parse.quote(prompt)
-        r = requests.get(url, timeout=timeout)
-        if r.status_code == 200:
-            return r.text.strip()
-    except Exception:
-        pass
+    with lock:  # only one in-flight call at a time
+        try:
+            url = "https://text.pollinations.ai/" + urllib.parse.quote(prompt)
+            r = requests.get(url, timeout=timeout)
+            if r.status_code == 200:
+                return r.text.strip()
+        except Exception:
+            pass
+        time.sleep(0.2)  # tiny buffer before next
     return None
 
 
@@ -70,7 +76,8 @@ def mistral_get(prompt: str, timeout: int = 12):
     except Exception:
         pass
     return None
-# -----------------------------
+# ------------------------------------------------
+
 
 @app.post("/chat")
 def chat(turn: Turn):
@@ -81,7 +88,7 @@ def chat(turn: Turn):
             turn.dict(),
         )
 
-    # 2) build context (last 10)
+    # 2) build context (last 10 turns)
     with engine.connect() as conn:
         hist = conn.execute(
             text("SELECT role, text FROM turns WHERE uid=:uid ORDER BY id DESC LIMIT 10"),
@@ -95,7 +102,7 @@ def chat(turn: Turn):
         + turn.text
     )
 
-    # 3) try Pollinations GET first
+    # 3) Pollinations GET first
     reply = pollination_get(prompt)
     if reply is None:
         # 4) fall back to Mistral
@@ -103,7 +110,7 @@ def chat(turn: Turn):
 
     # 5) final fallback
     if reply is None:
-        reply = "සමාවෙන්න, දැන් පිළිතුරක් නෑ. පසුව උත්සාහ කරන්න."
+        reply = "සමාවෙන්න, පසුව උත්සාහ කරන්න."
 
     # 6) save assistant turn
     with engine.begin() as conn:
@@ -112,27 +119,3 @@ def chat(turn: Turn):
             {"uid": turn.uid, "text": reply},
         )
     return {"reply": reply}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
