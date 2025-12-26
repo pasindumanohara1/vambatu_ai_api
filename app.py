@@ -45,13 +45,21 @@ lock = threading.Lock()  # one global lock for rate-limit
 
 
 def search_web(query: str, max_results: int = 3) -> str:
-    """DuckDuckGo search – returns compact snippets."""
+    """Zero-dependency web search – HTTP GET to DuckDuckGo Lite."""
     try:
-        with DDGS() as ddgs:
-            results = [f"{r['title']} – {r['body']}" for r in ddgs.text(query, max_results=max_results)]
-        return "\n".join(results) if results else "No fresh web results."
+        url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r = requests.get(url, headers=headers, timeout=5)
+        if r.status_code == 200:
+            # crude scrape – take <a> titles + snippets
+            import re
+            titles = re.findall(r'<a[^>]*>([^<]+)</a>', r.text)[:max_results]
+            snippets = re.findall(r'<div class="result-snippet">([^<]+)</div>', r.text)[:max_results]
+            results = [f"{t} – {s}" for t, s in zip(titles, snippets) if t and s]
+            return "\n".join(results) if results else "No results."
     except Exception:
-        return "Web search failed."
+        pass
+    return "Web search unavailable."
 
 
 def pollination_get(prompt: str, timeout: int = 12):
@@ -135,3 +143,4 @@ def chat(turn: Turn):
             {"uid": turn.uid, "text": reply},
         )
     return {"reply": reply}
+
