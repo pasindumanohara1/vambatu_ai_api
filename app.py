@@ -19,7 +19,7 @@ MISTRAL_KEY = "oJVZ0DQAaJL6U0y0ZbVmlPiqlQDocXXa"
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
 SYSTEM = (
-    "Act as a friendly and hospitable Sri Lankan AI(vambatu ai). Use warm Sri Lankan English , and provide detailed short answers with local cultural context and wit."
+    "Act as a friendly and hospitable Sri Lankan AI(vambatu ai). Use warm Sri Lankan English , and provide short full answers with local cultural context and wit."
 )
 
 app = FastAPI(title="VambatuAI-Server")
@@ -117,6 +117,7 @@ def chat(turn: Turn):
             {"uid": turn.uid, "text": reply},
         )
     return {"reply": reply}
+
 
 
 
