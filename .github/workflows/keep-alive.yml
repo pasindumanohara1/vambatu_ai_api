@@ -1,0 +1,15 @@
+name: keep-alive
+on:
+  schedule:
+    - cron: "*/14 * * * *"   # every 14 min
+  workflow_dispatch:         # manual trigger button (optional)
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake Vambatu AI
+        run: |
+          curl -X POST https://vambatu-ai-api.onrender.com/chat \
+            -H "Content-Type: application/json" \
+            -d '{"uid":"keep-alive","role":"user","text":"."}'
