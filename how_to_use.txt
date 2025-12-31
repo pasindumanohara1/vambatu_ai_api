@@ -1,0 +1,134 @@
+Below is a **copy-paste developer guide** for **any** stack (JS, Python, Flutter, React, curl) to integrate **Vambatu AI Chat** in **< 5 minutes**.
+
+Save the file → push → developers **start chatting in Sinhala** instantly.
+
+---
+
+# 🔌 Vambatu AI Integration Guide  
+**Base URL**: `https://vambatu-ai-api.onrender.com`
+
+---
+
+## 1. Quick Test (30 s)
+```bash
+curl -X POST https://vambatu-ai-api.onrender.com/chat \
+  -H "Content-Type: application/json" \
+  -d '{"uid":"demo","role":"user","text":"හෙලෝ"}'
+```
+**Reply**:
+```json
+{"reply":"හෙලෝ! මම මෙහේම ඉන්නෙ. ඔයාට කොහොමද? 😊"}
+```
+
+---
+
+## 2. JavaScript (Browser / Node)
+```html
+<script>
+const uid = self.crypto.randomUUID(); // unique per tab
+async function chat(msg) {
+  const res = await fetch("https://vambatu-ai-api.onrender.com/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({uid, role: "user", text: msg})
+  });
+  const data = await res.json();
+  return data.reply; // Sinhala reply
+}
+
+// use
+chat("මට joke එකක් කියන්න").then(r => console.log("වඹටු:", r));
+</script>
+```
+
+---
+
+## 3. React Hook
+```js
+import { useState } from "react";
+
+export default function useVambatu() {
+  const [reply, setReply] = useState("");
+  const uid = self.crypto.randomUUID();
+
+  const send = async (text) => {
+    const res = await fetch("https://vambatu-ai-api.onrender.com/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({uid, role: "user", text})
+    });
+    const data = await res.json();
+    setReply(data.reply);
+  };
+
+  return { reply, send };
+}
+```
+Usage:
+```jsx
+const { reply, send } = useVambatu();
+send("Galle Face යමුද?");
+return <p>{reply}</p>;
+```
+
+---
+
+## 4. Python (any version)
+```python
+import requests, json
+
+URL = "https://vambatu-ai-api.onrender.com/chat"
+
+def vambatu_chat(text: str, uid: str) -> str:
+    r = requests.post(URL, json={"uid": uid, "role": "user", "text": text}, timeout=15)
+    return r.json()["reply"]
+
+# use
+print(vambatu_chat("මට trip plan එකක් දෙන්න", "py-demo"))
+```
+
+---
+
+## 5. Flutter / Dart
+```dart
+import 'package:http/http.dart' as http;
+
+Future<String> vambatuChat(String text, String uid) async {
+  final res = await http.post(
+    Uri.parse("https://vambatu-ai-api.onrender.com/chat"),
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({"uid": uid, "role": "user", "text": text}),
+  );
+  return jsonDecode(res.body)["reply"];
+}
+
+// use
+final reply = await vambatuChat("හෙලෝ", "flutter-demo");
+print(reply); // සිංහල reply
+```
+
+---
+
+## 6. Postman Collection
+**Import URL**:  
+[https://vambatu-ai-api.onrender.com/postman.json](https://vambatu-ai-api.onrender.com/postman.json)  
+(or manually → **POST** `/chat` → Body → raw → JSON example above)
+
+---
+
+## 7. Error Codes
+| Code | Meaning | Retry? |
+|------|---------|--------|
+| 200 | OK | ✅ |
+| 503 | AI waking up | **wait 2 s** then retry |
+| 500 | fallback reply | ✅ (already polite) |
+
+---
+
+## 8. Rate Limits
+- **Anonymous**: 1 req / 15 s per IP (handled by backend lock)  
+- **Registered** (soon): 1 req / 5 s (Bearer token)
+
+---
+
+
